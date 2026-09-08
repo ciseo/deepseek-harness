@@ -270,9 +270,9 @@ export function apply(ctx: Context, config: Config): void {
       }
       if (args.action === 'pause' || args.action === 'resume') {
         requireDirectHuman(ctx, execution)
-        if (hasText(args.objective) || hasRoundCap(args.max_goal_rounds) || hasText(args.blocked_reason)) {
+        if (hasText(args.objective) || hasText(args.blocked_reason)) {
           throw new HarnessError(
-            'objective and max_goal_rounds are valid only with action edit; blocked_reason is valid only with action blocked',
+            'objective is valid only with action edit; blocked_reason is valid only with action blocked',
             'GOAL_TOOL_INVALID_UPDATE',
           )
         }
@@ -282,9 +282,9 @@ export function apply(ctx: Context, config: Config): void {
         return Promise.resolve(goalValue(goal))
       }
       const authority = completionAuthority(ctx, execution)
-      if (hasText(args.objective) || hasRoundCap(args.max_goal_rounds)) {
+      if (hasText(args.objective)) {
         throw new HarnessError(
-          'objective and max_goal_rounds are valid only with action edit',
+          'objective is valid only with action edit',
           'GOAL_TOOL_INVALID_UPDATE',
         )
       }
@@ -331,7 +331,7 @@ export function apply(ctx: Context, config: Config): void {
         ? args.blocked_reason
         : hasText(args.objective)
           ? args.objective
-          : hasRoundCap(args.max_goal_rounds) ? args.max_goal_rounds : args.goal_id,
+          : args.action === 'edit' && hasRoundCap(args.max_goal_rounds) ? args.max_goal_rounds : args.goal_id,
     ),
   }))
 }

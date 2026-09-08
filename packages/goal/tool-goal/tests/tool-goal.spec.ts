@@ -441,7 +441,7 @@ describe('goal tool state transitions', () => {
       goal_id: created.id,
       revision: created.revision,
       action: 'complete',
-      max_goal_rounds: 2,
+      objective: 'not valid for complete',
     }, root.agent)
     expect(terminalUpdate.error?.info?.code).toBe('GOAL_TOOL_INVALID_UPDATE')
     const blockedWithoutReason = await execute(ctx, 'update_goal', {
@@ -502,7 +502,7 @@ describe('goal tool state transitions', () => {
       revision: goal.revision,
       action: 'pause',
       objective: '',
-      max_goal_rounds: 0,
+      max_goal_rounds: 5,
       blocked_reason: '',
     }, root.agent)
     expect(resultGoal(paused)).toMatchObject({ phase: 'paused', objective: 'edited' })
@@ -513,7 +513,7 @@ describe('goal tool state transitions', () => {
       revision: goal.revision,
       action: 'resume',
       objective: '',
-      max_goal_rounds: 0,
+      max_goal_rounds: 5,
       blocked_reason: '',
     }, root.agent)
     expect(resultGoal(resumed)).toMatchObject({ phase: 'active', objective: 'edited' })
@@ -524,7 +524,7 @@ describe('goal tool state transitions', () => {
       revision: goal.revision,
       action: 'blocked',
       objective: '',
-      max_goal_rounds: 0,
+      max_goal_rounds: 5,
       blocked_reason: 'actual blocker',
     }, root.agent)
     expect(resultGoal(blocked)).toMatchObject({ phase: 'blocked' })
@@ -535,7 +535,7 @@ describe('goal tool state transitions', () => {
       revision: goal.revision,
       action: 'complete',
       objective: '',
-      max_goal_rounds: 0,
+      max_goal_rounds: 5,
       blocked_reason: '',
     }, root.agent)
     expect(resultGoal(complete)).toMatchObject({ phase: 'complete', objective: 'edited' })
