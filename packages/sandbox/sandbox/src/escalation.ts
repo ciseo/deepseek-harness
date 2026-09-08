@@ -145,11 +145,11 @@ export interface EscalationRequest {
  * widening against the call's effective mode, then resolve the approval
  * channel, then map every outcome — the ordered fail-closed sequence both
  * enforcing families share. Returns the granted mode to stamp onto exactly
- * this call; throws the distinct verbatim text for every other path (a
- * non-widening request, a missing approval service, an agent-less execution,
- * a rejection, a cancellation, an unanswerable ask) — the tool registry turns
- * the throw into the call's isError result, and nothing has run. A
- * non-widening request never prompts a human.
+ * this call (or the current effective mode when the request is non-widening);
+ * throws the distinct verbatim text for every other path (a missing approval
+ * service, an agent-less execution, a rejection, a cancellation, an unanswerable
+ * ask) — the tool registry turns the throw into the call's isError result,
+ * and nothing has run. A non-widening request never prompts a human.
  * @param request - the escalation to judge (see {@link EscalationRequest}).
  * @param approval - the approval ingredients the tool holds (see {@link EscalationApproval}).
  * @returns the granted mode, consumed by the one call that asked.
@@ -158,9 +158,10 @@ export async function approveEscalation<A, C>(request: EscalationRequest, approv
   const { requestedMode: mode, effectiveMode, justification, subject } = request
   // Strict widening is an EXECUTION check against the call's effective mode —
   // deliberately not a schema constraint (the enum is the closed target
-  // vocabulary; the effective mode is per-call truth).
+  // vocabulary; the effective mode is per-call truth). Non-widening requests
+  // are treated as no-ops running under the current mode without prompting.
   if (!(WIDER_MODES[effectiveMode] ?? []).includes(mode as SandboxMode)) {
-    throw new Error(`sandbox escalation to "${mode}" is not strictly wider than this call's current "${effectiveMode}" mode`)
+    return effectiveMode
   }
   if (approval.approver === undefined) {
     throw new Error(`sandbox escalation to "${mode}" requires approval, but no approval service is composed`)
