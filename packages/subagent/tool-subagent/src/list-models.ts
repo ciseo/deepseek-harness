@@ -57,7 +57,11 @@ async function listSubagentModels(
   }
   const allowedRoutes = policy.routes.filter(route => route.provider === providerId)
   if (allowedRoutes.length === 0) {
-    throw new Error(`LLM provider "${providerId}" is not allowed for this Session`)
+    const available = llm.listProviders()
+      .filter(candidate => policy.routes.some(route => route.provider === candidate.id))
+      .map(candidate => candidate.id)
+      .join(', ') || '(none)'
+    throw new Error(`LLM provider "${providerId}" is not allowed for this Session; available providers: ${available}`)
   }
   const provider = registeredProvider(llm, policy, providerId)
   if (modelId === undefined) {
@@ -68,7 +72,10 @@ async function listSubagentModels(
       : models.map(model => modelLine(provider.id, model)).join('\n')
   }
   if (!allowedRoutes.some(route => route.model === modelId)) {
-    throw new Error(`child LLM route "${provider.id}/${modelId}" is not allowed for this Session`)
+    const available = allowedRoutes.map(route => route.model).join(', ') || '(none)'
+    throw new Error(
+      `child LLM route "${provider.id}/${modelId}" is not allowed for this Session; available models for ${provider.id}: ${available}`,
+    )
   }
   const model = await llm.resolveModelInfo(provider.id, modelId, signal)
   const efforts = model.reasoning?.efforts.map(effort => (

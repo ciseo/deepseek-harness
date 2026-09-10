@@ -71,7 +71,7 @@ describe('dsh-tool-subagent model selection', () => {
         { provider: 'alpha', model: 'other-model' },
         { provider: 'alpha', model: 'other-model' },
       )
-    }).toThrow('is not allowed for this Session')
+    }).toThrow('Call `list_subagent_models` to inspect authorized routes, or omit both `provider` and `model` to inherit the parent route.')
     expect(() => {
       assertAllowedModelSelection(
         policy,
@@ -146,7 +146,7 @@ describe('dsh-tool-subagent model selection', () => {
       model: 'fast-model',
     })
     expect(result.isError).toBe(true)
-    expect(text(result)).toContain('child model selection is disabled for this tool instance')
+    expect(text(result)).toContain('child model selection is disabled for this tool instance; omit `provider` and `model` to inherit the parent route')
   })
 
   it('rejects enabled model selection when the provider cannot apply Agent options', async () => {
@@ -304,6 +304,7 @@ describe('dsh-tool-subagent model selection', () => {
     const result = await callSubagent(ctx, { description: 'partial route', prompt: 'do it', ...route })
     expect(result.isError).toBe(true)
     expect(text(result)).toContain('`provider` and `model` must be supplied together')
+    expect(text(result)).toContain('call `list_subagent_models` to discover valid pairs, or omit both to inherit the parent route')
     expect(starts).toBe(0)
   })
 
