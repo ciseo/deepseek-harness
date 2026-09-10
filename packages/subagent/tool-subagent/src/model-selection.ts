@@ -114,10 +114,15 @@ export function requestedAgentOptions(
   const normalized = normalizeDelegationModelRequest(request)
   if (!hasDelegationModelRequest(normalized)) return configured
   if (!enabled) {
-    throw new Error('child model selection is disabled for this tool instance')
+    throw new Error(
+      'child model selection is disabled for this tool instance; omit `provider` and `model` to inherit the parent route',
+    )
   }
   if ((normalized.provider === undefined) !== (normalized.model === undefined)) {
-    throw new Error('child LLM `provider` and `model` must be supplied together')
+    throw new Error(
+      'child LLM `provider` and `model` must be supplied together; '
+      + 'call `list_subagent_models` to discover valid pairs, or omit both to inherit the parent route',
+    )
   }
 
   const baselineProvider = configured?.provider ?? parentOptions.provider
@@ -157,7 +162,10 @@ export function assertAllowedModelSelection(
     throw new Error('cannot select child LLM values without an effective provider and model')
   }
   if (policy.routes.some(route => route.provider === provider && route.model === model)) return
-  throw new Error(`child LLM route "${provider}/${model}" is not allowed for this Session`)
+  throw new Error(
+    `child LLM route "${provider}/${model}" is not allowed for this Session. `
+    + 'Call `list_subagent_models` to inspect authorized routes, or omit both `provider` and `model` to inherit the parent route.',
+  )
 }
 
 /**

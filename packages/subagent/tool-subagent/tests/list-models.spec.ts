@@ -167,7 +167,7 @@ describe('list_subagent_models', () => {
 
     const denied = await call(ctx, { provider: 'alpha', model: 'plain' })
     expect(denied.isError).toBe(true)
-    expect(text(denied)).toContain('is not allowed for this Session')
+    expect(text(denied)).toContain('is not allowed for this Session; available models for alpha: fast')
   })
 
   it('rejects an unauthorized provider before calling its adapter catalog', async () => {
