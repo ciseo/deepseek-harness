@@ -79,10 +79,19 @@ export function hasDelegationModelRequest(request: DelegationModelRequest): bool
     || request.reasoning_effort !== undefined
 }
 
-/** Reject an empty model-facing route value at the tool JSON boundary. */
-function assertNonEmpty(value: string | undefined, field: keyof DelegationModelRequest): void {
-  if (value !== undefined && value.length === 0) {
-    throw new Error(`child LLM \`${field}\` must be non-empty`)
+/**
+ * Normalize model-facing route fields, trimming strings and treating empty/whitespace as omitted.
+ * @param request - Model-facing route fields from the tool call.
+ * @returns Normalized request with empty values converted to undefined.
+ */
+export function normalizeDelegationModelRequest(request: DelegationModelRequest): DelegationModelRequest {
+  const provider = request.provider?.trim() || undefined
+  const model = request.model?.trim() || undefined
+  const reasoning_effort = request.reasoning_effort?.trim() || undefined
+  return {
+    ...provider !== undefined ? { provider } : {},
+    ...model !== undefined ? { model } : {},
+    ...reasoning_effort !== undefined ? { reasoning_effort } : {},
   }
 }
 
@@ -102,28 +111,26 @@ export function requestedAgentOptions(
   request: DelegationModelRequest,
   enabled: boolean,
 ): AgentOptions | undefined {
-  if (!hasDelegationModelRequest(request)) return configured
+  const normalized = normalizeDelegationModelRequest(request)
+  if (!hasDelegationModelRequest(normalized)) return configured
   if (!enabled) {
     throw new Error('child model selection is disabled for this tool instance')
   }
-  assertNonEmpty(request.provider, 'provider')
-  assertNonEmpty(request.model, 'model')
-  assertNonEmpty(request.reasoning_effort, 'reasoning_effort')
-  if ((request.provider === undefined) !== (request.model === undefined)) {
+  if ((normalized.provider === undefined) !== (normalized.model === undefined)) {
     throw new Error('child LLM `provider` and `model` must be supplied together')
   }
 
   const baselineProvider = configured?.provider ?? parentOptions.provider
   const baselineModel = configured?.model ?? parentOptions.model
-  const routeChanged = request.provider !== undefined
-    && (request.provider !== baselineProvider || request.model !== baselineModel)
+  const routeChanged = normalized.provider !== undefined
+    && (normalized.provider !== baselineProvider || normalized.model !== baselineModel)
   const { reasoningEffort: _configuredReasoningEffort, ...configuredWithoutReasoning } = configured ?? {}
   return {
-    ...routeChanged && request.reasoning_effort === undefined ? configuredWithoutReasoning : configured,
-    ...request.provider === undefined ? {} : { provider: request.provider, model: request.model },
-    ...request.reasoning_effort === undefined
+    ...routeChanged && normalized.reasoning_effort === undefined ? configuredWithoutReasoning : configured,
+    ...normalized.provider === undefined ? {} : { provider: normalized.provider, model: normalized.model },
+    ...normalized.reasoning_effort === undefined
       ? {}
-      : { reasoningEffort: ReasoningEffortId(request.reasoning_effort) },
+      : { reasoningEffort: ReasoningEffortId(normalized.reasoning_effort) },
   }
 }
 
@@ -142,7 +149,8 @@ export function assertAllowedModelSelection(
   requested: AgentOptions | undefined,
   request: DelegationModelRequest,
 ): void {
-  if (policy === undefined || !hasDelegationModelRequest(request)) return
+  const normalized = normalizeDelegationModelRequest(request)
+  if (policy === undefined || !hasDelegationModelRequest(normalized)) return
   const provider = requested?.provider ?? parentOptions.provider
   const model = requested?.model ?? parentOptions.model
   if (provider === undefined || model === undefined) {
