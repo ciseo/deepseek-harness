@@ -3,7 +3,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
-import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { Agent, AgentOptions } from '@deepseek-ai/dsh-agent'
 import SubagentRuntime from '@deepseek-ai/dsh-subagent'
 import type { SubagentStartRequest } from '@deepseek-ai/dsh-subagent'
 import { Session, SessionId } from '@deepseek-ai/dsh-session'
@@ -308,14 +308,50 @@ describe('dsh-tool-subagent model selection', () => {
   })
 
   it.each([
-    { provider: '', model: 'fast-model', expected: '`provider` must be non-empty' },
-    { provider: 'alpha', model: '', expected: '`model` must be non-empty' },
-    { reasoning_effort: '', expected: '`reasoning_effort` must be non-empty' },
-  ])('rejects empty model-facing values', async ({ expected, ...selection }) => {
+    { provider: '', model: 'fast-model', expected: '`provider` and `model` must be supplied together' },
+    { provider: 'alpha', model: '', expected: '`provider` and `model` must be supplied together' },
+  ])('normalizes empty strings in partial routes to missing fields', async ({ expected, ...selection }) => {
     const ctx = await setup({ provider: 'mock', withModelSelection: true })
     const result = await callSubagent(ctx, { description: 'empty route', prompt: 'do it', ...selection })
     expect(result.isError).toBe(true)
     expect(text(result)).toContain(expected)
+  })
+
+  it('normalizes empty provider and model to omitted selection and inherits parent route', async () => {
+    let starts = 0
+    let startedWith: AgentOptions | undefined = { provider: 'sentinel', model: 'sentinel' }
+    const ctx = await setup(
+      { provider: 'mock', withModelSelection: true },
+      { onStart: (req) => { starts += 1; startedWith = req.agentOptions } },
+    )
+    const result = await callSubagent(ctx, {
+      description: 'empty route',
+      prompt: 'do it',
+      provider: '',
+      model: '',
+      reasoning_effort: '',
+    })
+    expect(result.isError).toBe(false)
+    expect(starts).toBe(1)
+    expect(startedWith).toBeUndefined()
+  })
+
+  it('tolerates empty route fields even when model selection is disabled', async () => {
+    let starts = 0
+    let startedWith: AgentOptions | undefined = { provider: 'sentinel', model: 'sentinel' }
+    const ctx = await setup(
+      { provider: 'mock', withModelSelection: false },
+      { onStart: (req) => { starts += 1; startedWith = req.agentOptions } },
+    )
+    const result = await callSubagent(ctx, {
+      description: 'empty route',
+      prompt: 'do it',
+      provider: '',
+      model: '',
+    })
+    expect(result.isError).toBe(false)
+    expect(starts).toBe(1)
+    expect(startedWith).toBeUndefined()
   })
 
   it('uses the LLM runtime for provider and reasoning-effort validation before child creation', async () => {

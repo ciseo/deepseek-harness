@@ -29,6 +29,7 @@ import {
   assertAllowedModelSelection,
   hasConfiguredLlmSelection,
   hasDelegationModelRequest,
+  normalizeDelegationModelRequest,
   preflightChildLlmRoute,
   requestedAgentOptions,
 } from './model-selection.ts'
@@ -475,7 +476,7 @@ export function apply(ctx: Context, config: Config, session?: Session): void {
             throw new Error('subagent tool requires a calling agent (exec.agent was undefined)')
           }
 
-          const modelRequest = args as DelegationModelRequest
+          const modelRequest = normalizeDelegationModelRequest(args as DelegationModelRequest)
           const parentOptions = parentAgentOptionsForDelegation(parent)
           const requiresRoutePreflight = hasDelegationModelRequest(modelRequest)
             || hasConfiguredLlmSelection(config.agentOptions)

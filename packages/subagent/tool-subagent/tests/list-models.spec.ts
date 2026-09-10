@@ -212,7 +212,8 @@ describe('list_subagent_models', () => {
 
   it.each([
     { args: { model: 'fast' }, expected: '`model` requires `provider`' },
-    { args: { provider: '' }, expected: '`provider` must be non-empty' },
+    { args: { model: 'fast', provider: '' }, expected: '`model` requires `provider`' },
+    { args: { model: 'fast', provider: '   ' }, expected: '`model` requires `provider`' },
     { args: { provider: 'missing' }, expected: 'is not allowed for this Session' },
   ])('rejects incomplete or unavailable provider requests', async ({ args, expected }) => {
     const ctx = await setupListTool()
@@ -221,12 +222,20 @@ describe('list_subagent_models', () => {
     expect(text(result)).toContain(expected)
   })
 
-  it('rejects an empty exact model after resolving the provider', async () => {
+  it('treats empty provider or model as omitted', async () => {
     const ctx = await setupListTool()
     ctx.llm.registerAdapter(['alpha'], new CatalogAdapter())
-    const result = await call(ctx, { provider: 'alpha', model: '' })
-    expect(result.isError).toBe(true)
-    expect(text(result)).toContain('`model` must be non-empty')
+    const providers = await call(ctx, { provider: '', model: '' })
+    expect(providers.isError).toBe(false)
+    expect(text(providers)).toContain('alpha — ALPHA API')
+
+    const whitespaceProviders = await call(ctx, { provider: '   ' })
+    expect(whitespaceProviders.isError).toBe(false)
+    expect(text(whitespaceProviders)).toContain('alpha — ALPHA API')
+
+    const models = await call(ctx, { provider: 'alpha', model: '' })
+    expect(models.isError).toBe(false)
+    expect(text(models)).toBe('alpha/fast — Fast: Focused work.\nalpha/plain — Plain')
   })
 
   it('reports registered alternatives for an unavailable provider', async () => {
